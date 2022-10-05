@@ -7,12 +7,12 @@ public class ClickTrigger : MonoBehaviour
 	TicTacToeAI _ai;
 
 	[SerializeField]
-	private int _myCoordX = 0;
+	public int _myCoordX = 0;
 	[SerializeField]
-	private int _myCoordY = 0;
+	public int _myCoordY = 0;
 
 	[SerializeField]
-	private bool canClick;
+	public bool canClick;
 
 	private void Awake()
 	{
@@ -39,6 +39,7 @@ public class ClickTrigger : MonoBehaviour
 	private void OnMouseDown()
 	{
 		if(canClick){
+			canClick = false;
 			_ai.PlayerSelects(_myCoordX, _myCoordY);
 		}
 	}

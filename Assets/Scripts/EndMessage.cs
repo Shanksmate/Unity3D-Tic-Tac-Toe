@@ -9,7 +9,12 @@ public class EndMessage : MonoBehaviour
 
 	[SerializeField]
 	private TMP_Text _playerMessage = null;
+	TicTacToeAI _ai;
 
+	void Start()
+	{
+		_ai = FindObjectOfType<TicTacToeAI>();
+	}
 	public void OnGameEnded(int winner)
 	{
 		_playerMessage.text = winner == -1 ? "Tie" : winner == 1 ? "AI wins" : "Player wins";
