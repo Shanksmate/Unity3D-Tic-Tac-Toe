@@ -1554,13 +1554,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
-  m_LocalRotation: {x: 0.3709869, y: -0.60197073, z: 0.3709869, w: 0.60197073}
+  m_LocalRotation: {x: 0.40085167, y: -0.58251005, z: 0.40085167, w: 0.58251005}
   m_LocalPosition: {x: 2.29, y: 5.05, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 63.290005, y: -90, z: 0}
+  m_LocalEulerAnglesHint: {x: 69.067, y: -90.00001, z: 0}
 --- !u!1 &994455734
 GameObject:
   m_ObjectHideFlags: 0
@@ -1896,7 +1896,18 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1282022453}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1282022455}
+        m_MethodName: Retry
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1282022453
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2658,7 +2669,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _isPlayerTurn: 1
   _gridSize: 3
-  playerState: 2
+  playerState: 1
   _xPrefab: {fileID: 7414302633889650939, guid: a450fd114cd7d1a478caad21517a2ac9,
     type: 3}
   _oPrefab: {fileID: 7864686030223180920, guid: f4dc0bc95f6576a40a4d10ac0b905c6a,
@@ -2680,6 +2691,17 @@ MonoBehaviour:
   onPlayerWin:
     m_PersistentCalls:
       m_Calls:
+      - m_Target: {fileID: 1935952292}
+        m_MethodName: OnGameEnded
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
       - m_Target: {fileID: 1570885029}
         m_MethodName: SetActive
         m_Mode: 6
@@ -2691,17 +2713,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 1
         m_CallState: 2
-      - m_Target: {fileID: 1935952292}
-        m_MethodName: OnGameEnded
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 1
-        m_CallState: 2
+  _moveCount: 0
 --- !u!4 &2053529901
 Transform:
   m_ObjectHideFlags: 0

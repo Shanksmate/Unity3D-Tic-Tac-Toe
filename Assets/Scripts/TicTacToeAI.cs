@@ -10,8 +10,16 @@ using Random = UnityEngine.Random;
 
 public enum TicTacToeState{none, cross, circle}
 
-public class WinnerEvent : UnityEvent<int>
+enum Result
 {
+	win = 1,
+	loss = -1,
+	tie = 0
+}
+
+[Serializable] public class WinnerEvent : UnityEvent<int>
+{
+	
 }
 
 public class TicTacToeAI : MonoBehaviour
@@ -71,7 +79,6 @@ public class TicTacToeAI : MonoBehaviour
 		boardState = new TicTacToeState[3, 3];
 		
 		onGameStarted.Invoke();
-
 	}
 
 	public void PlayerSelects(int coordX, int coordY)
@@ -85,7 +92,7 @@ public class TicTacToeAI : MonoBehaviour
 		if (CheckWin(playerState))
 		{
 			Debug.Log("Win has occured");
-			onPlayerWin.Invoke(1);
+			onPlayerWin.Invoke(0);
 			return;
 		}
 		else
@@ -113,7 +120,7 @@ public class TicTacToeAI : MonoBehaviour
 		return false;
 	}
 
-	public void AiTurn()
+	private void AiTurn()
 	{
 		//prevents ai from selecting if board has been filled
 		if (_moveCount > 8)
@@ -126,14 +133,16 @@ public class TicTacToeAI : MonoBehaviour
 			AiSelects(coordX, coordY);
 		}
 	}
-	
-	public void AiSelects(int coordX, int coordY)
+
+	private void AiSelects(int coordX, int coordY)
 	{
 
 		if (!_isPlayerTurn)
 		{
 			//prevent players from playing in the same spot
 			_triggers[coordX, coordY].canClick = false;
+			
+			Move(coordX,coordY,aiState);
 			
 			SetVisual(coordX, coordY, aiState);
 			boardState[coordX, coordY] = aiState;
@@ -144,7 +153,7 @@ public class TicTacToeAI : MonoBehaviour
 
 			if (CheckWin(aiState))
 			{
-				onPlayerWin.Invoke(-1);
+				onPlayerWin.Invoke(1);
 				Debug.Log("Win has occured");
 			}
 		}
@@ -169,9 +178,66 @@ public class TicTacToeAI : MonoBehaviour
 		coordX = possibleMoves[randomMove]._myCoordX;
 		coordY = possibleMoves[randomMove]._myCoordY;
 		
-		Debug.Log(coordX);
-		Debug.Log(coordY);
 	}
+
+	void Move(int coordX, int coordY, TicTacToeState s)
+	{
+		TicTacToeState[,] board = boardState;
+		
+		if(board[coordX,coordY] == TicTacToeState.none){
+			board[coordX,coordY] = s;
+		}
+		_moveCount++;
+        
+		//check end conditions
+        
+		//check col
+		for(int i = 0; i < _gridSize; i++){
+			if(board[coordX,i] != s)
+				break;
+			if(i == _gridSize-1){
+				//report win for s
+			}
+		}
+        
+		//check row
+		for(int i = 0; i < _gridSize; i++){
+			if(board[i,coordY] != s)
+				break;
+			if(i == _gridSize-1){
+				//report win for s
+			}
+		}
+        
+		//check diag
+		if(coordX == coordY){
+			//we're on a diagonal
+			for(int i = 0; i < _gridSize; i++){
+				if(board[i,i] != s)
+					break;
+				if(i == _gridSize-1){
+					//report win for s
+				}
+			}
+		}
+            
+		//check anti diag (thanks rampion)
+		if(coordX + coordY == _gridSize - 1){
+			for(int i = 0; i < _gridSize; i++){
+				if(board[i,(_gridSize-1)-i] != s)
+					break;
+				if(i == _gridSize-1){
+					//report win for s
+				}
+			}
+		}
+
+		//check draw
+		if(_moveCount == (Math.Pow(_gridSize, 2) - 1)){
+			//report draw
+		}
+	}
+	
 
 	private void SetVisual(int coordX, int coordY, TicTacToeState targetState)
 	{
@@ -182,3 +248,4 @@ public class TicTacToeAI : MonoBehaviour
 		);
 	}
 }
+
