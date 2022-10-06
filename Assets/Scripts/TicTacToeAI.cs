@@ -4,18 +4,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.InteropServices.WindowsRuntime;
+using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.Events;
 using Random = UnityEngine.Random;
 
 public enum TicTacToeState{none, cross, circle}
-
-enum Result
-{
-	win = 1,
-	loss = -1,
-	tie = 0
-}
 
 [Serializable] public class WinnerEvent : UnityEvent<int>
 {
@@ -84,21 +78,11 @@ public class TicTacToeAI : MonoBehaviour
 	public void PlayerSelects(int coordX, int coordY)
 	{
 		if (!_isPlayerTurn) return;
-		SetVisual(coordX, coordY, playerState);
-		boardState[coordX, coordY] = playerState;
+		
+		MakeAMove(coordX,coordY,playerState,0);
 		_isPlayerTurn = false;
-		_moveCount++;
-
-		if (CheckWin(playerState))
-		{
-			Debug.Log("Win has occured");
-			onPlayerWin.Invoke(0);
-			return;
-		}
-		else
-		{
-			AiTurn();
-		}
+		
+		AiTurn();
 	}
 
 	private bool CheckWin(TicTacToeState player)
@@ -122,7 +106,7 @@ public class TicTacToeAI : MonoBehaviour
 
 	private void AiTurn()
 	{
-		//prevents ai from selecting if board has been filled
+		//prevents ai from selecting if board has been exhausted
 		if (_moveCount > 8)
 		{
 			return;
@@ -136,26 +120,13 @@ public class TicTacToeAI : MonoBehaviour
 
 	private void AiSelects(int coordX, int coordY)
 	{
-
 		if (!_isPlayerTurn)
 		{
-			//prevent players from playing in the same spot
-			_triggers[coordX, coordY].canClick = false;
-			
-			Move(coordX,coordY,aiState);
-			
-			SetVisual(coordX, coordY, aiState);
-			boardState[coordX, coordY] = aiState;
+			//Register move
+			MakeAMove(coordX,coordY,aiState,1);
 			
 			//switches turn
 			_isPlayerTurn = true;
-			_moveCount++;
-
-			if (CheckWin(aiState))
-			{
-				onPlayerWin.Invoke(1);
-				Debug.Log("Win has occured");
-			}
 		}
 		
 	}
@@ -180,12 +151,14 @@ public class TicTacToeAI : MonoBehaviour
 		
 	}
 
-	void Move(int coordX, int coordY, TicTacToeState s)
+	void MakeAMove(int coordX, int coordY, TicTacToeState player, int winner)
 	{
-		TicTacToeState[,] board = boardState;
-		
-		if(board[coordX,coordY] == TicTacToeState.none){
-			board[coordX,coordY] = s;
+
+		if(boardState[coordX,coordY] == TicTacToeState.none)
+		{
+			_triggers[coordX, coordY].canClick = false;
+			boardState[coordX,coordY] = player;
+			SetVisual(coordX, coordY, player);
 		}
 		_moveCount++;
         
@@ -193,19 +166,21 @@ public class TicTacToeAI : MonoBehaviour
         
 		//check col
 		for(int i = 0; i < _gridSize; i++){
-			if(board[coordX,i] != s)
+			if(boardState[coordX,i] != player)
 				break;
-			if(i == _gridSize-1){
-				//report win for s
+			if(i == _gridSize-1)
+			{
+				onPlayerWin.Invoke(winner);
 			}
 		}
         
 		//check row
 		for(int i = 0; i < _gridSize; i++){
-			if(board[i,coordY] != s)
+			if(boardState[i,coordY] != player)
 				break;
-			if(i == _gridSize-1){
-				//report win for s
+			if(i == _gridSize-1)
+			{
+				onPlayerWin.Invoke(winner);
 			}
 		}
         
@@ -213,29 +188,30 @@ public class TicTacToeAI : MonoBehaviour
 		if(coordX == coordY){
 			//we're on a diagonal
 			for(int i = 0; i < _gridSize; i++){
-				if(board[i,i] != s)
+				if(boardState[i,i] != player)
 					break;
-				if(i == _gridSize-1){
-					//report win for s
+				if(i == _gridSize-1)
+				{
+					onPlayerWin.Invoke(winner);
 				}
 			}
 		}
             
-		//check anti diag (thanks rampion)
+		//check anti diag
 		if(coordX + coordY == _gridSize - 1){
 			for(int i = 0; i < _gridSize; i++){
-				if(board[i,(_gridSize-1)-i] != s)
+				if(boardState[i,(_gridSize-1)-i] != player)
 					break;
-				if(i == _gridSize-1){
-					//report win for s
+				if(i == _gridSize-1)
+				{
+					onPlayerWin.Invoke(winner);
 				}
 			}
 		}
 
 		//check draw
-		if(_moveCount == (Math.Pow(_gridSize, 2) - 1)){
-			//report draw
-		}
+		if(_moveCount == (Math.Pow(_gridSize, 2) - 1))onPlayerWin.Invoke(-1);
+
 	}
 	
 
