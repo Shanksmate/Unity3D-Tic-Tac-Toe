@@ -79,7 +79,7 @@ public class TicTacToeAI : MonoBehaviour
 	{
 		if (!_isPlayerTurn) return;
 		
-		MakeAMove(coordX,coordY,playerState,0);
+		MakeAMove(coordX,coordY,playerState);
 		_isPlayerTurn = false;
 		
 		AiTurn();
@@ -106,24 +106,55 @@ public class TicTacToeAI : MonoBehaviour
 
 	private void AiTurn()
 	{
-		//prevents ai from selecting if board has been exhausted
-		if (_moveCount > 8)
-		{
-			return;
-		}
-		else //ai takes his turn
-		{
-			GenerateMove(out int coordX, out int coordY);
-			AiSelects(coordX, coordY);
-		}
+		
+		GetBestAiMove(boardState);
 	}
 
-	private void AiSelects(int coordX, int coordY)
+	private void GetBestAiMove( TicTacToeState[,] boardCopy)
 	{
-		if (!_isPlayerTurn)
+		//if canClick of clicktrigger is true;
+		List<ClickTrigger> moves = GeneratePossibleMoves();
+		
+		//are you sure when this board is sent recursively, this conditions will still be met?
+		if (!_isPlayerTurn && _moveCount < 5)
 		{
-			//Register move
-			MakeAMove(coordX,coordY,aiState,1);
+			foreach (ClickTrigger move in moves)
+			{
+				//The canClick value of this clicktrigger coords have to change also
+				
+				
+				//The bool canClick value controls the generation of the moves in the GetBestAiMove
+				boardCopy[move._myCoordX, move._myCoordY] = aiState;
+				
+				//Because just as we send this updated boardCopy recursively to GetBestAiMove,
+				//We equally pass EACH these of moves to the GetResult function,
+				int grade = GetResult(boardCopy, aiState, move);
+				
+				if (grade == 1)
+				{
+					//Better luck next time human!
+					//stop the loop! Ignore all other possible moves (break?)
+					MakeAMove(move._myCoordX,move._myCoordY,aiState);
+					onPlayerWin.Invoke(0);
+					
+				}else if (grade == 0)
+				{
+					//Well done human, tie game!
+					//stop the loop! Ignore all other possible moves (break?)
+					MakeAMove(move._myCoordX,move._myCoordY,aiState);
+					onPlayerWin.Invoke(-1);
+				}else
+				{
+					//Ai digs deeper
+					//send the corresponding board recursively to the getBestMove function.
+					GetBestAiMove(boardCopy);
+				}
+				
+			}
+			
+			
+			
+			
 			
 			//switches turn
 			_isPlayerTurn = true;
@@ -131,27 +162,26 @@ public class TicTacToeAI : MonoBehaviour
 		
 	}
 
-	void GenerateMove(out int coordX, out int coordY)
+	List<ClickTrigger> GeneratePossibleMoves()
 	{
 		List<ClickTrigger> possibleMoves = new List<ClickTrigger>();
 
 		foreach (ClickTrigger move in _triggers)
 		{
+			//This is the condition for generating possible moves from the triggers
 			if (move.canClick)
 			{
+				//We need to continuously prune this list as we test in the GetBestAiMove function
+				//particularly if it is a list 
 				possibleMoves.Add(move);
 			}
 		}
-		Debug.Log(possibleMoves.Count);
 		
-		int randomMove = UnityEngine.Random.Range(0,possibleMoves.Count);
-
-		coordX = possibleMoves[randomMove]._myCoordX;
-		coordY = possibleMoves[randomMove]._myCoordY;
 		
+		return possibleMoves;
 	}
 
-	void MakeAMove(int coordX, int coordY, TicTacToeState player, int winner)
+	void MakeAMove(int coordX, int coordY, TicTacToeState player)
 	{
 
 		if(boardState[coordX,coordY] == TicTacToeState.none)
@@ -161,59 +191,72 @@ public class TicTacToeAI : MonoBehaviour
 			SetVisual(coordX, coordY, player);
 		}
 		_moveCount++;
-        
-		//check end conditions
-        
-		//check col
-		for(int i = 0; i < _gridSize; i++){
-			if(boardState[coordX,i] != player)
-				break;
-			if(i == _gridSize-1)
-			{
-				onPlayerWin.Invoke(winner);
-			}
-		}
-        
-		//check row
-		for(int i = 0; i < _gridSize; i++){
-			if(boardState[i,coordY] != player)
-				break;
-			if(i == _gridSize-1)
-			{
-				onPlayerWin.Invoke(winner);
-			}
-		}
-        
-		//check diag
-		if(coordX == coordY){
-			//we're on a diagonal
-			for(int i = 0; i < _gridSize; i++){
-				if(boardState[i,i] != player)
-					break;
-				if(i == _gridSize-1)
-				{
-					onPlayerWin.Invoke(winner);
-				}
-			}
-		}
-            
-		//check anti diag
-		if(coordX + coordY == _gridSize - 1){
-			for(int i = 0; i < _gridSize; i++){
-				if(boardState[i,(_gridSize-1)-i] != player)
-					break;
-				if(i == _gridSize-1)
-				{
-					onPlayerWin.Invoke(winner);
-				}
-			}
-		}
-
-		//check draw
-		if(_moveCount == (Math.Pow(_gridSize, 2) - 1))onPlayerWin.Invoke(-1);
-
 	}
-	
+
+	private int GetResult(TicTacToeState[,] boardCopy,TicTacToeState player,ClickTrigger move)
+	{
+		int coordX = move._myCoordX;
+		int coordY = move._myCoordY;
+		
+		//check end conditions
+		
+		//check row
+		for (int i = 0; i < _gridSize; i++)
+		{
+			if (boardCopy[i, coordY] != player)
+				break;
+			if (i == _gridSize - 1)
+			{
+				return player == playerState ? -1 : 1;
+			}
+		}
+
+		//check col
+		for (int i = 0; i < _gridSize; i++)
+		{
+			if (boardCopy[coordX, i] != player)
+				break;
+			if (i == _gridSize - 1)
+			{
+				return player == playerState ? -1 : 1;
+			}
+		}
+
+		//check diag
+		if (coordX == coordY)
+		{
+			//we're on a diagonal
+			for (int i = 0; i < _gridSize; i++)
+			{
+				if (boardCopy[i, i] != player)
+					break;
+				if (i == _gridSize - 1)
+				{
+					return player == playerState ? -1 : 1;
+				}
+			}
+		}
+
+		//check anti diag
+		if (coordX + coordY == _gridSize - 1)
+		{
+			for (int i = 0; i < _gridSize; i++)
+			{
+				if (boardCopy[i, (_gridSize - 1) - i] != player)
+					break;
+				if (i == _gridSize - 1)
+				{
+					return player == playerState ? -1 : 1;
+				}
+			}
+		}
+		
+		//check draw
+		if (_moveCount == (Math.Pow(_gridSize, 2) - 1)) return 0;
+
+		return move._myCoordX;
+	}
+
 
 	private void SetVisual(int coordX, int coordY, TicTacToeState targetState)
 	{
