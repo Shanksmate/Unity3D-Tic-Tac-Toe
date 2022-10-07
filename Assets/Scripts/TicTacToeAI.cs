@@ -7,6 +7,7 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.EventSystems;
 using Random = UnityEngine.Random;
 
 public enum TicTacToeState{none, cross, circle}
@@ -21,6 +22,7 @@ public class TicTacToeAI : MonoBehaviour
 	
 	int _aiLevel;
 
+	[SerializeField]
 	TicTacToeState[,] boardState;
 
 	[SerializeField]
@@ -70,7 +72,14 @@ public class TicTacToeAI : MonoBehaviour
 	private void StartGame()
 	{
 		_triggers = new ClickTrigger[3,3];
-		boardState = new TicTacToeState[3, 3];
+		boardState = new [,]
+		{
+			{TicTacToeState.none,TicTacToeState.none,TicTacToeState.none},
+			{TicTacToeState.none,TicTacToeState.none,TicTacToeState.none},
+			{TicTacToeState.none,TicTacToeState.none,TicTacToeState.none}
+		};
+		
+		
 		
 		onGameStarted.Invoke();
 	}
@@ -82,7 +91,7 @@ public class TicTacToeAI : MonoBehaviour
 		MakeAMove(coordX,coordY,playerState);
 		_isPlayerTurn = false;
 		
-		AiTurn();
+		AiTurn(boardState);
 	}
 
 	private bool CheckWin(TicTacToeState player)
@@ -104,81 +113,76 @@ public class TicTacToeAI : MonoBehaviour
 		return false;
 	}
 
-	private void AiTurn()
+	private void AiTurn(TicTacToeState[,] boardCopy)
 	{
-		
-		GetBestAiMove(boardState);
+		//are you sure when this board is sent recursively, this conditions will still be met?
+		//_move count hasn't 
+		if (!_isPlayerTurn && _moveCount >= 4)
+		{
+			boardCopy = boardState;
+			GetBestAiMove(boardCopy);
+		}
 	}
 
 	private void GetBestAiMove( TicTacToeState[,] boardCopy)
 	{
-		//if canClick of clicktrigger is true;
-		List<ClickTrigger> moves = GeneratePossibleMoves();
+		//canClick value of all moves must be true to get on the list
+		List<ClickTrigger> moves = GeneratePossibleMoves(boardCopy);
 		
-		//are you sure when this board is sent recursively, this conditions will still be met?
-		if (!_isPlayerTurn && _moveCount < 5)
+		foreach (ClickTrigger move in moves)
 		{
-			foreach (ClickTrigger move in moves)
+			//The canClick value of this clicktrigger coords have to change also
+			//The bool canClick value controls the generation of the moves in the GetBestAiMove
+			boardCopy[move._myCoordX, move._myCoordY] = aiState;
+				
+			//Because just as we send this updated boardCopy recursively to GetBestAiMove,
+			//We equally pass EACH these of moves to the GetResult function,
+			int grade = GetResult(boardCopy, aiState, move);
+			
+			if (grade == 1)
 			{
-				//The canClick value of this clicktrigger coords have to change also
+				//Better luck next time human!
+				//stop the loop! Ignore all other possible moves (break?)
 				
+				MakeAMove(move._myCoordX,move._myCoordY,aiState);
+				_isPlayerTurn = true;
+				onPlayerWin.Invoke(1);
+				break;
 				
-				//The bool canClick value controls the generation of the moves in the GetBestAiMove
-				boardCopy[move._myCoordX, move._myCoordY] = aiState;
-				
-				//Because just as we send this updated boardCopy recursively to GetBestAiMove,
-				//We equally pass EACH these of moves to the GetResult function,
-				int grade = GetResult(boardCopy, aiState, move);
-				
-				if (grade == 1)
-				{
-					//Better luck next time human!
-					//stop the loop! Ignore all other possible moves (break?)
-					MakeAMove(move._myCoordX,move._myCoordY,aiState);
-					onPlayerWin.Invoke(0);
-					
-				}else if (grade == 0)
-				{
-					//Well done human, tie game!
-					//stop the loop! Ignore all other possible moves (break?)
-					MakeAMove(move._myCoordX,move._myCoordY,aiState);
-					onPlayerWin.Invoke(-1);
-				}else
-				{
-					//Ai digs deeper
-					//send the corresponding board recursively to the getBestMove function.
-					GetBestAiMove(boardCopy);
-				}
-				
+
+			}else if (grade == 0)
+			{
+				//Well done human, tie game!
+				//stop the loop! Ignore all other possible moves (break?)
+				MakeAMove(move._myCoordX,move._myCoordY,aiState);
+				_isPlayerTurn = true;
+				onPlayerWin.Invoke(-1);
+				break;
+			}else
+			{
+				//Ai digs deeper
+				//send the corresponding board recursively to the getBestMove function.
+				GetBestAiMove(boardCopy);
 			}
-			
-			
-			
-			
-			
-			//switches turn
-			_isPlayerTurn = true;
+				
 		}
-		
 	}
 
-	List<ClickTrigger> GeneratePossibleMoves()
+	List<ClickTrigger> GeneratePossibleMoves(TicTacToeState[,] boardCopy)
 	{
-		List<ClickTrigger> possibleMoves = new List<ClickTrigger>();
+		List<ClickTrigger> list = new List<ClickTrigger>();
 
 		foreach (ClickTrigger move in _triggers)
 		{
 			//This is the condition for generating possible moves from the triggers
-			if (move.canClick)
+			if (boardCopy[move._myCoordX,move._myCoordY] == TicTacToeState.none)
 			{
 				//We need to continuously prune this list as we test in the GetBestAiMove function
-				//particularly if it is a list 
-				possibleMoves.Add(move);
+				////particularly if it is a list 
+				list.Add(move);
 			}
 		}
-		
-		
-		return possibleMoves;
+		return list;
 	}
 
 	void MakeAMove(int coordX, int coordY, TicTacToeState player)
@@ -252,9 +256,9 @@ public class TicTacToeAI : MonoBehaviour
 		}
 		
 		//check draw
-		if (_moveCount == (Math.Pow(_gridSize, 2) - 1)) return 0;
+		if (_moveCount == 9 && !CheckWin(player)) return 0;
 
-		return move._myCoordX;
+		return _moveCount;
 	}
 
 
