@@ -67,6 +67,15 @@ public class TicTacToeAI : MonoBehaviour
 		StartGame();
 	}
 
+	private bool IsMovesLeft(TicTacToeState[,] boardCopy)
+	{
+		for (int i = 0; i < _gridSize; i++)
+		for (int j = 0; j < _gridSize; j++)
+			if (boardCopy[i, j] == TicTacToeState.none)
+				return true;
+		return false;
+	}
+
 	public void RegisterTransform(int myCoordX, int myCoordY, ClickTrigger clickTrigger)
 	{
 		_triggers[myCoordX, myCoordY] = clickTrigger;
@@ -81,9 +90,6 @@ public class TicTacToeAI : MonoBehaviour
 			{TicTacToeState.none,TicTacToeState.none,TicTacToeState.none},
 			{TicTacToeState.none,TicTacToeState.none,TicTacToeState.none}
 		};
-		
-		
-		
 		onGameStarted.Invoke();
 	}
 
@@ -93,49 +99,60 @@ public class TicTacToeAI : MonoBehaviour
 		
 		MakeAMove(coordX,coordY,playerState);
 		_isPlayerTurn = false;
-		//check win here
 		
+		//Ai turn
+		ClickTrigger maxMove = GetBestMove(boardState);
+		MakeAMove(maxMove._myCoordX,maxMove._myCoordY,aiState);
+		_isPlayerTurn = true;
 
-		AiTurn(boardState);
 	}
-	
 
-	private void AiTurn(TicTacToeState[,] boardCopy)
+	private int GetBoardState(TicTacToeState[,] boardCopy)
 	{
-		boardCopy = boardState;
-		
-		//are you sure when this board is sent recursively, this conditions will still be met?
-		//_move count hasn't 
-		if (!_isPlayerTurn && _moveCount >= 4)
+		// Checking for Rows for X or O victory.
+		for (int row = 0; row < 3; row++)
 		{
-			GetBestMove(boardCopy, aiState);
-		}
-		else
-		{
-			if (!_isPlayerTurn)
+			if (boardCopy[row, 0] == boardCopy[row, 1] && boardCopy[row, 1] == boardCopy[row, 2])
 			{
-				List<ClickTrigger> possibleMoves = GeneratePossibleMoves(boardCopy);
-				
-				int randomMove = UnityEngine.Random.Range(0,possibleMoves.Count);
-
-				int coordX = possibleMoves[randomMove]._myCoordX;
-				int coordY = possibleMoves[randomMove]._myCoordY;
-				
-				MakeAMove(coordX,coordY,aiState);
-				
-				_isPlayerTurn = true;
+				if (boardCopy[row, 0] == TicTacToeState.circle)
+					return +10;
+				else if (boardCopy[row, 0] == TicTacToeState.cross)
+					return -10;
 			}
 		}
+ 
+		// Checking for Columns for X or O victory.
+		for (int col = 0; col < 3; col++)
+		{
+			if (boardCopy[0, col] == boardCopy[1, col] && boardCopy[1, col] == boardCopy[2, col])
+			{
+				if (boardCopy[0, col] == TicTacToeState.circle)
+					return +10;
+				else if (boardCopy[0, col] == TicTacToeState.cross)
+					return -10;
+			}
+		}
+ 
+		// Checking for Diagonals for X or O victory.
+		if (boardCopy[0, 0] == boardCopy[1, 1] && boardCopy[1, 1] == boardCopy[2, 2])
+		{
+			if (boardCopy[0, 0] == TicTacToeState.circle)
+				return +10;
+			else if (boardCopy[0, 0] == TicTacToeState.cross)
+				return -10;
+		}
+		if (boardCopy[0, 2] == boardCopy[1, 1] && boardCopy[1, 1] == boardCopy[2, 0])
+		{
+			if (boardCopy[0, 2] == TicTacToeState.circle)
+				return +10;
+			else if (boardCopy[0, 2] == TicTacToeState.cross)
+				return -10;
+		}
+ 
+		// Else if none of them have won then return 0
+		return 0;
 	}
-
-	private bool IsMovesLeft(TicTacToeState[,] boardCopy)
-	{
-		for (int i = 0; i < _gridSize; i++)
-		for (int j = 0; j < _gridSize; j++)
-			if (boardCopy[i, j] == TicTacToeState.none)
-				return true;
-		return false;
-	}
+	
 
 	private int Minimax(TicTacToeState[,] boardCopy, int depth, bool isMax)
 	{
@@ -156,7 +173,7 @@ public class TicTacToeAI : MonoBehaviour
 		if (IsMovesLeft(boardCopy) == false)
 			return 0;
  
-		// If this maximizer's move
+		// If this ai's move
 		if (isMax)
 		{
 			int best = -1000;
@@ -185,7 +202,7 @@ public class TicTacToeAI : MonoBehaviour
 			return best;
 		}
  
-		// If this minimizer's move
+		// If this human's move
 		else
 		{
 			int best = 1000;
@@ -215,14 +232,11 @@ public class TicTacToeAI : MonoBehaviour
 		}
 	}
 
-	private Move GetBestMove( TicTacToeState[,] boardCopy)
+
+	private ClickTrigger GetBestMove( TicTacToeState[,] boardCopy)
 	{
 		int bestVal = -1000;
-		Move bestMove = new Move
-		{
-			row = -1,
-			col = -1
-		};
+		ClickTrigger bestMove = gameObject.AddComponent<ClickTrigger>();
 
 		// Traverse all cells, evaluate minimax function
 		// for all empty cells. And return the cell
@@ -243,91 +257,27 @@ public class TicTacToeAI : MonoBehaviour
  
 					// Undo the move
 					boardCopy[i, j] = TicTacToeState.none;
- 
+					
 					// If the value of the current move is
 					// more than the best value, then update
 					// best/
 					if (moveScore > bestVal)
 					{
-						bestMove.row = i;
-						bestMove.col = j;
+						bestMove._myCoordX = i;
+						bestMove._myCoordY = j;
 						bestVal = moveScore;
 					}
 				}
 			}
 		}
  
-		Debug.Log($"The value of the best Move is : {{0}}\n\n" bestVal);
+		Debug.Log($"The value of the best Move is : {{0}}\n\n" + bestVal);
  
 		return bestMove;
 	}
 
-	private int GetBoardState(TicTacToeState[,] boardCopy)
-	{
-		// Checking for Rows for X or O victory.
-		for (int row = 0; row < 3; row++)
-		{
-			if (boardCopy[row, 0] == boardCopy[row, 1] && boardCopy[row, 1] == boardCopy[row, 2])
-			{
-				if (boardCopy[row, 0] == TicTacToeState.cross)
-					return +10;
-				else if (boardCopy[row, 0] == TicTacToeState.circle)
-					return -10;
-			}
-		}
- 
-		// Checking for Columns for X or O victory.
-		for (int col = 0; col < 3; col++)
-		{
-			if (boardCopy[0, col] == boardCopy[1, col] && boardCopy[1, col] == boardCopy[2, col])
-			{
-				if (boardCopy[0, col] == TicTacToeState.cross)
-					return +10;
-				else if (boardCopy[0, col] == TicTacToeState.circle)
-					return -10;
-			}
-		}
- 
-		// Checking for Diagonals for X or O victory.
-		if (boardCopy[0, 0] == boardCopy[1, 1] && boardCopy[1, 1] == boardCopy[2, 2])
-		{
-			if (boardCopy[0, 0] == TicTacToeState.cross)
-				return +10;
-			else if (boardCopy[0, 0] == TicTacToeState.cross)
-				return -10;
-		}
-		if (boardCopy[0, 2] == boardCopy[1, 1] && boardCopy[1, 1] == boardCopy[2, 0])
-		{
-			if (boardCopy[0, 2] == TicTacToeState.cross)
-				return +10;
-			else if (boardCopy[0, 2] == TicTacToeState.circle)
-				return -10;
-		}
- 
-		// Else if none of them have won then return 0
-		return 0;
-	}
-
-	List<ClickTrigger> GeneratePossibleMoves(TicTacToeState[,] boardCopy)
-	{
-		List<ClickTrigger> list = new List<ClickTrigger>();
-
-		foreach (ClickTrigger move in _triggers)
-		{
-			//This is the condition for generating possible moves from the triggers
-			if (boardCopy[move._myCoordX,move._myCoordY] == TicTacToeState.none)
-			{
-				//We need to continuously prune this list as we test in the GetBestAiMove function
-				////particularly if it is a list 
-				list.Add(move);
-			}
-		}
-		return list;
-	}
-
 	void MakeAMove(int coordX, int coordY, TicTacToeState player)
 	{
-
 		if(boardState[coordX,coordY] == TicTacToeState.none)
 		{
 			_triggers[coordX, coordY].canClick = false;
