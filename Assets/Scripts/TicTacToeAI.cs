@@ -15,17 +15,12 @@ public enum TicTacToeState{none, cross, circle}
 [Serializable] public class WinnerEvent : UnityEvent<int>
 {
 }
-class Move
-{
-	public int row, col;
-};
 
 public class TicTacToeAI : MonoBehaviour
 {
 	
 	int _aiLevel;
-
-	[SerializeField]
+	
 	TicTacToeState[,] boardState;
 
 	[SerializeField]
@@ -98,11 +93,23 @@ public class TicTacToeAI : MonoBehaviour
 		if (!_isPlayerTurn) return;
 		
 		MakeAMove(coordX,coordY,playerState);
+		
+		//even though ai is unbeatable
+		if (GetBoardState(boardState)== -10) onPlayerWin.Invoke(0);
+		
+		//switch turns
 		_isPlayerTurn = false;
 		
-		//Ai turn
+		//Ai generates Optimal move
 		ClickTrigger maxMove = GetBestMove(boardState);
+		
+		//Ai plays Optimal move
 		MakeAMove(maxMove._myCoordX,maxMove._myCoordY,aiState);
+		
+		if (GetBoardState(boardState)== +10) onPlayerWin.Invoke(1);
+		if (GetBoardState(boardState)== 0 && !IsMovesLeft(boardState)) onPlayerWin.Invoke(-1);
+		
+		//switch turns
 		_isPlayerTurn = true;
 
 	}
