@@ -28,7 +28,7 @@ public class TicTacToeAI : MonoBehaviour
 
 	[SerializeField]
 	private int _gridSize = 3;
-	
+
 	[SerializeField]
 	private TicTacToeState playerState = TicTacToeState.cross;
 	TicTacToeState aiState = TicTacToeState.circle;
@@ -48,6 +48,7 @@ public class TicTacToeAI : MonoBehaviour
 	
 	[SerializeField] private int _moveCount;
 
+	float _delayTime = 0.3f;
 	
 
 	private void Awake()
@@ -92,26 +93,67 @@ public class TicTacToeAI : MonoBehaviour
 	{
 		if (!_isPlayerTurn) return;
 		
-		MakeAMove(coordX,coordY,playerState);
-		
-		//even though ai is unbeatable
-		if (GetBoardState(boardState)== -10) onPlayerWin.Invoke(0);
+		StartCoroutine(MakeAMove(coordX,coordY,playerState,_delayTime));
 		
 		//switch turns
 		_isPlayerTurn = false;
 		
-		//Ai generates Optimal move
-		ClickTrigger maxMove = GetBestMove(boardState);
-		
-		//Ai plays Optimal move
-		MakeAMove(maxMove._myCoordX,maxMove._myCoordY,aiState);
-		
-		if (GetBoardState(boardState)== +10) onPlayerWin.Invoke(1);
-		if (GetBoardState(boardState)== 0 && !IsMovesLeft(boardState)) onPlayerWin.Invoke(-1);
-		
+		if(IsMovesLeft(boardState) && GetBoardState(boardState)==0)AiSelects();
+	}
+
+	private void AiSelects()
+	{
+		if (_aiLevel == 1)
+		{
+			HardAi();
+		}
+
+		if (_aiLevel == 0)
+		{
+			//Ai generates a Random Move
+			EasyAi();
+		}
+
 		//switch turns
 		_isPlayerTurn = true;
+	}
 
+	private void HardAi()
+	{
+		//Ai generates Optimal move
+		ClickTrigger maxMove = GetBestMove(boardState);
+
+		//Ai plays Optimal move
+		StartCoroutine(MakeAMove(maxMove._myCoordX, maxMove._myCoordY, aiState, _delayTime));
+	}
+
+	void CheckWinOrTie()
+	{
+		int score = GetBoardState(boardState);
+ 
+		// If ai has won the game
+		// return his/her evaluated score
+		if (score == +10)
+			onPlayerWin.Invoke(1);
+ 
+		// If human has won the game
+		// return his/her evaluated score
+		if (score == -10)
+			onPlayerWin.Invoke(0);
+ 
+		// If there are no more moves and
+		// no winner then it is a tie
+		if (score == 0 && !IsMovesLeft(boardState))
+			onPlayerWin.Invoke(-1);
+	}
+
+	private void EasyAi()
+	{
+		GenerateMove(out var coordX, out var coordY);
+
+		//Ai plays Random move
+		StartCoroutine(MakeAMove(coordX, coordY, aiState, _delayTime));
+		
 	}
 
 	private int GetBoardState(TicTacToeState[,] boardCopy)
@@ -159,7 +201,6 @@ public class TicTacToeAI : MonoBehaviour
 		// Else if none of them have won then return 0
 		return 0;
 	}
-	
 
 	private int Minimax(TicTacToeState[,] boardCopy, int depth, bool isMax)
 	{
@@ -239,7 +280,6 @@ public class TicTacToeAI : MonoBehaviour
 		}
 	}
 
-
 	private ClickTrigger GetBestMove( TicTacToeState[,] boardCopy)
 	{
 		int bestVal = -1000;
@@ -283,8 +323,31 @@ public class TicTacToeAI : MonoBehaviour
 		return bestMove;
 	}
 
-	void MakeAMove(int coordX, int coordY, TicTacToeState player)
+	void GenerateMove(out int coordX, out int coordY)
 	{
+		
+		List<ClickTrigger> possibleMoves = new List<ClickTrigger>();
+
+		foreach (ClickTrigger move in _triggers)
+		{
+			if (move.canClick)
+			{
+				possibleMoves.Add(move);
+			}
+		}
+		
+		int randomMove = UnityEngine.Random.Range(0,possibleMoves.Count);
+
+		coordX = possibleMoves[randomMove]._myCoordX;
+		coordY = possibleMoves[randomMove]._myCoordY;
+		
+		if (possibleMoves.Count < 1) return;
+	}
+	
+	IEnumerator MakeAMove(int coordX, int coordY, TicTacToeState player, float delayTime)
+	{
+		if (!_isPlayerTurn) yield return new WaitForSeconds(delayTime);
+		
 		if(boardState[coordX,coordY] == TicTacToeState.none)
 		{
 			_triggers[coordX, coordY].canClick = false;
@@ -292,6 +355,7 @@ public class TicTacToeAI : MonoBehaviour
 			SetVisual(coordX, coordY, player);
 		}
 		_moveCount++;
+		CheckWinOrTie();
 	}
 	
 	private void SetVisual(int coordX, int coordY, TicTacToeState targetState)
